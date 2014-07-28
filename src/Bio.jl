@@ -1,7 +1,5 @@
 module Bio
 
-include(Pkg.dir("Bio", "src", "phylo", "phylo.jl"))
-
-using .Phylo
+include("phylo/phylo.jl")
 
 end # module
