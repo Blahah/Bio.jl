@@ -1,5 +1,5 @@
 module Bio
 
-# package code goes here
+include(Pkg.dir("Bio", "src", "phylo", "phylo.jl"))
 
 end # module
