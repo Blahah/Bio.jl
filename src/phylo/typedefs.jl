@@ -1,15 +1,25 @@
-#=================================================================================#
-# Recurvive extendible type for representation of phylogenetic trees in in Julia. #
-#=================================================================================#
 
-# Ben J. Ward, 2014.
+@doc """
+PhyExtension allows defining arbitrary metadata to annotate nodes.
 
-# Extension type - parametric
+This allows the PhyNode type to support any phylogenetic tree format that includes annotations (e.g. PhyloXML, NeXML), and allows programmatic extension of nodes with annotations.
+""" ->
 type PhyExtension{T}
   value::T
 end
 
-# Node type.
+@doc """
+PhyNode represents a node in a phylogenetic tree.
+
+A node can have:
+
+- `name`
+- `branchlength`
+- one or more `extensions`
+- a reference to its `parent` PhyNode
+- reference to one or more `children`
+
+""" ->
 type PhyNode
   name::String
   branchlength::Float64
@@ -29,71 +39,112 @@ say the cutting / pruning of a subtree, since you simply need to set the parent 
 is set it cannot be made #undef.
  =#
 
-# Node constructors.
-function PhyNode(label::String, branchlength::Float64, ext::Vector{PhyExtension}, parent::PhyNode)
+@doc """
+Create a PhyNode.
+
+PhyNodes represent nodes in a phylogenetic tree. All arguments are optional when creating PhyNodes:
+
+```julia
+one = PhyNode()
+two = PhyNode(name = "two",
+              branchlength = 1.0,
+              parent = one)
+```
+
+""" {
+  :parameters => {
+    (:name,
+     "The name of the node (optional). Defaults to an empty string, indicating the node has no name."),
+    (:branchlength,
+     "The branch length of the node from its parent (optional). Defaults to `-1.0`, indicating an unknown branch length."),
+    (:ext,
+     "An array of zero or more PhyExtensions (optional). Defaults to an empty array, i.e. `[]`, indicating there are no extensions."),
+    (:parent,
+     "The parent node (optional). Defaults to a self-reference, indicating the node has no parent.")},
+  :returns => (PhyNode)
+} ->
+function PhyNode(name::String = "",
+                 branchlength::Float64 = -1.0,
+                 ext::Vector{PhyExtension} = [],
+                 parent::PhyNode = nothing)
   x = PhyNode()
   setname!(x, label)
   setbranchlength!(x, branchlength)
   x.extensions = ext
-  x.parent = parent
+  x.parent = parent || x
   return x
 end
-
-function PhyNode(parent::PhyNode)
-  x = PhyNode()
-  setparent!(x, parent)
-  return x
-end
-
-function PhyNode(branchlength::Float64, parent::PhyNode)
-  x = PhyNode()
-  setbranchlength!(x, branchlength)
-  setparent!(x, parent)
-  return x
-end
-
-function PhyNode(label::String)
-  x = PhyNode()
-  setname!(x, label)
-  return x
-end
-
-function PhyNode(label::String, branchlength::Float64)
-  x = PhyNode()
-  setname!(x, label)
-  setbranchlength!(x, branchlength)
-  return x
-end
-
 
 ### Node Manipulation / methods on the PhyNode type...
 
 ## Getting information from a node...
 
+@doc """
+Test whether a node is empty.
+""" {
+    :parameters => {(:x, "The PhyNode to test.")},
+    :returns => (Bool)
+    } ->
 function isempty(x::PhyNode)
   return x.name == "" && x.branchlength == 0.0 && !hasextensions(x) && !haschildren(x) && parentisself(x)
 end
 
+@doc """
+Test whether a node is empty.
+""" {
+    :parameters => {(:x, "The PhyNode to test.")},
+    :returns => (Bool)
+    } ->
 function getname(x::PhyNode)
   return x.name
 end
 
+@doc """
+Test whether a node is empty.
+""" {
+    :parameters => {(:x, "The PhyNode to test.")},
+    :returns => (Bool)
+    } ->
 function getbranchlength(x::PhyNode)
   return x.branchlength
 end
 
+@doc """
+Test whether a node is empty.
+""" {
+    :parameters => {(:x, "The PhyNode to test.")},
+    :returns => (Bool)
+    } ->
 function isleaf(x::PhyNode)
   return hasparent(x) && !haschildren(x)
 end
 
+@doc """
+Test whether a node is empty.
+""" {
+    :parameters => {(:x, "The PhyNode to test.")},
+    :returns => (Bool)
+    } ->
 function haschildren(x::PhyNode)
   return length(x.children) > 0
 end
 
+@doc """
+Test whether a node is empty.
+""" {
+    :parameters => {(:x, "The PhyNode to test.")},
+    :returns => (Bool)
+    } ->
 function haschild(parent::PhyNode, child::PhyNode)
   return in(child, parent.children)
 end
 
+@doc """
+Test whether a node is empty.
+""" {
+    :parameters => {(:x, "The PhyNode to test.")},
+    :returns => (Bool)
+    } ->
 function hasextensions(x::PhyNode)
   return length(x.extensions) > 0
 end
@@ -291,7 +342,17 @@ function isequal(x::PhyNode, y::PhyNode)
 end
 
 
-# Tree type.
+@doc """
+Phylogeny represents a phylogenetic tree.
+
+A tree can have:
+
+- `name`
+- `root`
+- `rooted`
+- `rerootable`
+
+""" ->
 type Phylogeny
   name::String
   root::PhyNode
@@ -347,7 +408,7 @@ function root!(tree::Phylogeny)
   # Find the longest pairwise distance.
   maxdist = 0.0
   leaves = getterminals(tree)
-  leaf1 = PhyNode() 
+  leaf1 = PhyNode()
   leaf2 = 0.0
   for leaf in leaves
     root!(tree, leaf)
@@ -536,12 +597,3 @@ function distance(tree::Phylogeny, unitbl::Bool = false)
   updatedepths(tree.root, getbranchlength(tree.root))
   return depths
 end
-
-
-
-
-
-
-
-
-
