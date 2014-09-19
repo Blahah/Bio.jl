@@ -16,7 +16,7 @@ type PhyNode
   extensions::Vector{PhyExtension}
   children::Vector{PhyNode}
   parent::PhyNode
-  PhyNode() = (x = new("", -1.0, PhyNode[], PhyNode[]); x.parent = x)
+  PhyNode(name = "", branchlength = -1.0, children = PhyNode[], extensions = PhyExtension[]) = (x = new(name, branchlength, extensions, children); x.parent = x)
 end
 
 #=
@@ -29,22 +29,10 @@ say the cutting / pruning of a subtree, since you simply need to  the parent fie
 is  it cannot be made #undef.
  =#
 
-# Node constructors.
-function PhyNode(name::String = "", branchlength::Float64 = -1.0, ext::Vector{PhyExtension} = PhyExtension[])
-  x = PhyNode()
-  name!(x, name)
-  branchlength!(x, branchlength)
-  x.extensions = ext
-  x.parent = x
-  return x
-end
-
-function PhyNode(parent::PhyNode, name::String = "", branchlength::Float64 = -1.0, ext::Vector{PhyExtension} = PhyExtension[])
-  x = PhyNode()
-  name!(x, name)
-  branchlength!(x, branchlength)
-  x.extensions = ext
-  x.parent = parent
+# Node constructor.
+function PhyNode(parent::PhyNode, name = "", branchlength = -1.0, children = PhyNode[], extensions = PhyExtension[])
+  x = PhyNode(name, branchlength, children, extensions)
+  graft!(parent, x)
   return x
 end
 
