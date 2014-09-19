@@ -1,4 +1,4 @@
-import Base.delete!, Base.isequal, Base.getindex
+import Base.delete!, Base.isequal, Base.getindex, Base.parent
 
 @doc """
 PhyExtension allows defining arbitrary metadata to annotate nodes.
@@ -31,17 +31,19 @@ type PhyNode
   extensions::Vector{PhyExtension}
   children::Vector{PhyNode}
   parent::PhyNode
-  PhyNode() = (x = new("", 0.0, PhyNode[], PhyNode[]); x.parent = x)
+  PhyNode(name = "", branchlength = -1.0, children = PhyNode[],
+          extensions = PhyExtension[]) =
+         (x = new(name, branchlength, extensions, children); x.parent = x)
 end
 
 #=
 A note about the default no-argument constructor. You'll notice it incompletely initializes the instance of PhyNode,
 before filling in the Parent field with a reference to itself. This means the node has no parent and so could be a root,
-it could also just be a node that has been created, perhaps in a function, but will be added to another set of nodes subsequently
+it could also just be a node that has been created, perhaps in a function, but will be added to another  of nodes subsequently
 in order to build up a tree. Alternatively the user could have just popped it off the tree. I figured a self referential
 node would be the best way to do this rather than have #undef values lurking. It also allows removal of a parent from a node for something like
-say the cutting / pruning of a subtree, since you simply need to set the parent field to point to itself, whereas to my knowlege, once a var in Julia
-is set it cannot be made #undef.
+say the cutting / pruning of a subtree, since you simply need to  the parent field to point to itself, whereas to my knowlege, once a var in Julia
+is  it cannot be made #undef.
  =#
 
 @doc """
@@ -72,10 +74,11 @@ two = PhyNode(name = "two",
 function PhyNode(name::String = "",
                  branchlength::Float64 = -1.0,
                  ext::Vector{PhyExtension} = [],
+                 children::Vector{PhyNode} = [],
                  parent::PhyNode = nothing)
   x = PhyNode()
-  setname!(x, label)
-  setbranchlength!(x, branchlength)
+  name!(x, label)
+  branchlength!(x, branchlength)
   x.extensions = ext
   x.parent = parent || x
   return x
@@ -83,7 +86,7 @@ end
 
 ### Node Manipulation / methods on the PhyNode type...
 
-## Getting information from a node...
+## ting information from a node...
 
 @doc """
 Test whether a node is empty.
@@ -93,7 +96,7 @@ Test whether a node is empty.
   :returns => (Bool)
 } ->
 function isempty(x::PhyNode)
-  return x.name == "" && x.branchlength == 0.0 && !hasextensions(x) && !haschildren(x) && parentisself(x)
+  return x.name == "" && x.branchlength == -1.0 && !hasextensions(x) && !haschildren(x) && parentisself(x)
 end
 
 @doc """
@@ -103,7 +106,7 @@ Get the name of a PhyNode.
   :parameters => {(:x, "The PhyNode to get the name of.")},
   :returns => (Bool)
 } ->
-function getname(x::PhyNode)
+function name(x::PhyNode)
   return x.name
 end
 
@@ -114,7 +117,7 @@ Get the branch length of a PhyNode.
   :parameters => {(:x, "The PhyNode to get the branch length of.")},
   :returns => (Bool)
 } ->
-function getbranchlength(x::PhyNode)
+function branchlength(x::PhyNode)
   return x.branchlength
 end
 
@@ -197,7 +200,7 @@ Get the children of a node.
   :parameters => {(:x, "The PhyNode to get children for.")},
   :returns => (Array{PhyNode})
 } ->
-function getchildren(x::PhyNode)
+function children(x::PhyNode)
   return x.children
 end
 
@@ -208,9 +211,9 @@ Get the siblings of a node.
   :parameters => {(:x, "The PhyNode to get siblings for.")},
   :returns => (Array{PhyNode})
 } ->
-function getsiblings(x::PhyNode)
+function siblings(x::PhyNode)
   if hasparent(x)
-    return getchildren(x.parent)
+    return children(x.parent)
   end
 end
 
@@ -221,7 +224,7 @@ Get the parent of a node.
   :parameters => {(:x, "The PhyNode to get the parent of.")},
   :returns => (PhyNode)
 } ->
-function getparent(x::PhyNode)
+function parent(x::PhyNode)
   if parentisself(x)
     println("Node does not have a parent. It is self referential.")
   end
@@ -318,7 +321,7 @@ Get the descendents of a node.
   :parameters => {(:x, "The PhyNode to get descendents of.")},
   :returns => (Array{PhyNode})
 } ->
-function getdescendents(x::PhyNode)
+function descendents(x::PhyNode)
   return collect(PhyNode, DepthFirst(x))
 end
 
@@ -329,10 +332,9 @@ Get the terminal descendents of a node.
   :parameters => {(:x, "The PhyNode to get ther terminal descendents of.")},
   :returns => (Bool)
 } ->
-function getterminaldescendents(x::PhyNode)
+function terminaldescendents(x::PhyNode)
   return searchall(DepthFirst(x), isleaf)
 end
-
 
 # Test that the posanc node is ancestral to the given nodes.
 @doc """
@@ -346,13 +348,12 @@ Test whether a node is ancesteral to one or more other nodes.
   :returns => (Bool)
 } ->
 function isancestral(posanc::PhyNode, nodes::Array{PhyNode})
-  return all([in(node, getdescendents(posanc)) for node in nodes])
+  return all([in(node, descendents(posanc)) for node in nodes])
 end
 
-
-# I'm not sure this is the best way to get the MRCA of a set of nodes, but I think it's valid: As you climb a tree from any specified tip to the root.
+# I'm not sure this is the best way to  the MRCA of a  of nodes, but I think it's valid: As you climb a tree from any specified tip to the root.
 # if you keep checking the terminal descendents as you climb - the first node you hit that has all specified nodes as terminal descendents is
-# the MRCA. I found it dificult to choose the best way as if you want the mrca of 2 fairly related nodes, you'll get the answer sooner searching from tips 2 root,
+# the MRCA. I found it dificult to choose the best way as if you want the mrca of 2 fairly related nodes, you'll  the answer sooner searching from tips 2 root,
 # however this would take longer.
 @doc """
 Get the most recent common ancestor of an array of nodes.
@@ -363,13 +364,11 @@ Get the most recent common ancestor of an array of nodes.
   },
   :returns => (Bool)
 } ->
-function getmrca(nodes::Vector{PhyNode})
+function mrca(nodes::Vector{PhyNode})
   paths = [collect(Tip2Root(i)) for i in nodes]
   convergence = intersect(paths...)
   return convergence[1]
 end
-
-
 
 ## Setting information on a node...
 @doc """
@@ -382,7 +381,7 @@ Set the name of a PhyNode.
   },
   :returns => (Bool)
 } ->
-function setname!(x::PhyNode, name::String)
+function name!(x::PhyNode, name::String)
   x.name = name
 end
 
@@ -398,12 +397,11 @@ Set the branch length of a PhyNode.
   },
   :returns => (Bool)
 } ->
-function setbranchlength!(x::PhyNode, bl::Float64)
+function branchlength!(x::PhyNode, bl::Float64)
   x.branchlength = bl
 end
 
-
-# Following unsafe functions maniplulate the setting and manipulation of parental and child links.
+# Following unsafe functions maniplulate the ting and manipulation of parental and child links.
 # They should not be used unless absolutely nessecery - the prune and graft methods ensure the
 # bidirectional links between PhyNodes are built and broken cleanly.
 
@@ -419,11 +417,13 @@ Remove the parent of a node (thus setting the parent property to be self-referen
   :returns => (Bool)
 } ->
 function removeparent_unsafe!(x::PhyNode)
-  setparent_unsafe!(x, x)
+  parent_unsafe!(x, x)
 end
 
 @doc """
 Set the parent of a node.
+
+**Warning:** this method is considered unsafe because it does not build the two-way link between parent and child. If you want to add a child to a node, you should use `graft!()`, which does ensure the two-way link is built.
 """ {
   :section => "PhyNode",
   :parameters => {
@@ -432,7 +432,7 @@ Set the parent of a node.
   },
   :returns => (Bool)
 } ->
-function setparent_unsafe!(parent::PhyNode, child::PhyNode)
+function parent_unsafe!(parent::PhyNode, child::PhyNode)
   child.parent = parent
 end
 
@@ -487,7 +487,7 @@ function graft!(parent::PhyNode, child::PhyNode)
   if hasparent(child)
     error("This node is already attached to a parent.")
   end
-  setparent_unsafe!(parent, child)
+  parent_unsafe!(parent, child)
   addchild_unsafe!(parent, child)
 end
 
@@ -504,7 +504,7 @@ Graft a node onto another node, create a parent-child relationship between them,
 } ->
 function graft!(parent::PhyNode, child::PhyNode, branchlength::Float64)
     graft!(parent, child)
-    setbranchlength!(child, branchlength)
+    branchlength!(child, branchlength)
 end
 
 @doc """
@@ -536,7 +536,8 @@ This method cleanly removes the PhyNode `x` from its parent's `children` array, 
 } ->
 function prune!(x::PhyNode)
   if hasparent(x)
-    # You must make sure the parent of this node from which you are pruning, does not contain a reference to it.
+    # You must make sure the parent of this node from
+    # which you are pruning, does not contain a reference to it.
     removechild_unsafe!(x.parent, x)
     removeparent_unsafe!(x)
     return x
@@ -576,16 +577,38 @@ end
 
 @doc """
 Delete a node, destroying the relationships between it and its parent, and it and its children. The children of the node become the children of the node's  former parent.
+
+Returns the deleted node.
 """ {
   :section => "PhyNode",
   :parameters => {
     (:x, "The PhyNode to delete."),
   },
-  :returns => (Bool)
+  :returns => (PhyNode)
 } ->
 function delete!(x::PhyNode)
-  x = prune!(x)
-  graft!(getparent(x), getchildren(x))
+  deleted = prune!(x)
+  graft!(parent(deleted), children(deleted))
+  return deleted
+end
+
+@doc """
+Detach a subtree at a given node.
+
+Returns a new Phylogeny with the detached node as root.
+""" {
+  :section => "PhyNode",
+  :parameters => {
+    (:x, "The PhyNode to detach."),
+    (:name, "The name of the new Phylogeny."),
+    (:rooted, "Whether the detached subtree is rooted."),
+    (:rerootable, "Whether the detached subtree is rerootable.")
+  },
+  :returns => (PhyNode)
+} ->
+function detach!(x::PhyNode, name::String = "", rooted::Bool = true, rerootable::Bool = true)
+  detached = prune!(x)
+  return Phylogeny(name, detached, rooted, rerootable)
 end
 
 @doc """
@@ -642,10 +665,10 @@ Create a Phylogeny with a name, root node, and set whether it is rooted and whet
 } ->
 function Phylogeny(name::String, root::PhyNode, rooted::Bool, rerootable::Bool)
   x = Phylogeny()
-  setname!(x, name)
+  name!(x, name)
   x.root = root
   x.rooted = rooted
-  setrerootable!(x, rerootable)
+  rerootable!(x, rerootable)
   return x
 end
 
@@ -671,7 +694,7 @@ Set the name of a Phylogeny
     (:name, "The name to set.")
   }
 } ->
-function setname!(x::Phylogeny, name::String)
+function name!(x::Phylogeny, name::String)
   x.name = name
 end
 
@@ -710,7 +733,7 @@ Get the root node of a Phylogeny.
   },
   :returns => (PhyNode)
 } ->
-function getroot(x::Phylogeny)
+function root(x::Phylogeny)
   return x.root
 end
 
@@ -739,41 +762,81 @@ This method modifies the `tree` variable.
     (:tree, "The Phylogeny to root."),
   }
 } ->
-function root!(tree::Phylogeny)
-  # Roots a tree at the midpoint of the two most distant taxa.
-  # Find the longest pairwise distance.
-  maxdist = 0.0
-  leaves = getterminals(tree)
-  leaf1 = PhyNode()
-  leaf2 = 0.0
-  for leaf in leaves
-    root!(tree, leaf)
-    distances = collect(distance(tree))
-    values = Float64[i[2] for i in distances]
-    newmaximum = maximum(values)
-    maxind = newmaximum .== values
-    if newmaximum > maxdist
-      leaf1 = leaf
-      leaf2 = distances[maxind][1][1]
-      maxdist = distances[maxind][1][2]
+function root!(tree::Phylogeny, newbl::Float64 = -1.0)
+  midpoint = findmidpoint(tree)
+  root!(tree, midpoint, newbl)
+end
+
+@doc """
+Find the maximum branch length in a dictionary mapping nodes to their branch lengths.
+""" {
+  :section => "Phylogeny",
+  :parameters => {
+    (:dict, "The dictionary.")
+  },
+  :returns => (Int)
+} ->
+function maxindict(dictionary::Dict)
+  keyvalpairs = collect(dictionary)
+  values = [i[2] for i in keyvalpairs]
+  matches = maximum(values) .== values
+  return keyvalpairs[matches][1]
+end
+
+@doc """
+Find the node that is furthest from the root of a tree.
+""" {
+  :section => "Phylogeny",
+  :parameters => {
+    (:tree, "The Phylogeny to search.")
+  },
+  :returns => (PhyNode)
+} ->
+function furthestfromroot(tree::Phylogeny)
+  distances = distance(tree)
+  return maxindict(distances, x -> maximum(x) .== x)
+end
+
+@doc """
+Find the leaf that is furthest from a given node in a tree.
+""" {
+  :section => "Phylogeny",
+  :parameters => {
+    (:tree, "The Phylogeny containing the nodes."),
+    (:node, "The PhyNode find the furthest node from.")
+  },
+  :returns => (PhyNode)
+} ->
+function furthestleaf(tree::Phylogeny, node::PhyNode)
+  distances = {i => distance(tree, node, i) for i in terminaldescendents(root(tree))}
+  return maxindict(distances)
+end
+
+@doc """
+Find the midpoint of a tree.
+""" {
+  :section => "Phylogeny",
+  :parameters => {
+    (:tree, "The Phylogeny to find the midpoint of.")
+  },
+  :returns => (Bool)
+} ->
+function findmidpoint(tree::Phylogeny)
+  furthestfromroot, ffrdist = furthestfromroot(tree)
+  furthestfromleaf, ffldist = furthestleaf(tree, furthestfromroot)
+  outgroup = furthestfromroot
+  middistance = ffldist / 2.0
+  cdist = 0.0
+  current = furthestfromroot
+  while true
+    cdist += branchlength(current)
+    if cdist > middistance
+      break
+    else
+      current = parent(current)
     end
   end
-  root!(tree, leaf1)
-  # Remainder is the depth to go from the ingroup tip to the outgroup tip.
-  remainder = 0.5 * (maxdist - (getbranchlength(tree.root)))
-  @assert remainder >= 0.0
-  # After finding the largest pairwise distance, identify the midpoint and reroot there.
-  # Need to walk the path to the outgroup tip until al the root depth is acounted for.
-  for leaf in reverse(collect(Tip2Root(leaf2))[1:end-1])
-    remainder -= getbranchlength(leaf)
-    if remainder < 0
-      outleaf = leaf
-      outgrouplength = -remainder
-      root!(tree, outleaf, outgrouplength)
-      return nothing
-    end
-  end
-  error("Somehow failed to find the midpoint!")
+  return current
 end
 
 @doc """
@@ -786,8 +849,10 @@ Root a tree using a given array of nodes as the outgroup, and optionally setting
     (:newbl, "The new branch length (optional).")
   }
 } ->
-function root!(tree::Phylogeny, outgroup::Vector{PhyNode}, newbl::Float64 = 0.0)
-  o = getmrca(outgroup)
+function root!(tree::Phylogeny,
+               outgroup::Vector{PhyNode},
+               newbl::Float64 = -1.0)
+  o = mrca(outgroup)
   root!(tree, o, newbl)
 end
 
@@ -801,7 +866,7 @@ Root a tree using a given node as the outgroup, and optionally setting the branc
     (:newbl, "The new branch length (optional).")
   }
 } ->
-function root!(tree::Phylogeny, outgroup::PhyNode, newbl::Float64 = 0.0)
+function root!(tree::Phylogeny, outgroup::PhyNode, newbl::Float64 = -1.0)
   # Check for errors and edge cases first as much as possible.
   # 1 - The tree is not rerootable.
   if !isrerootable(tree)
@@ -811,58 +876,69 @@ function root!(tree::Phylogeny, outgroup::PhyNode, newbl::Float64 = 0.0)
   if isroot(outgroup)
     error("New root is already the root!")
   end
-  # 3 - Check the new branch length for the outgroup is between 0.0 and the old previous branchlength.
-  previousbranchlength = getbranchlength(outgroup)
+  # 3 - Check the new branch length for the outgroup
+  # is between 0.0 and the old previous branchlength.
+  previousbranchlength = branchlength(outgroup)
   @assert 0.0 <= newbl <= previousbranchlength
   # 4 - Check that the proposed outgroup is indeed part of the tree.
   if !isintree(tree, outgroup)
     error("The specified outgroup is not part of the phylogeny.")
   end
 
-  # Get the path from the outgroup to the root, excluding the root.
+  #  the path from the outgroup to the root, excluding the root.
   outgrouppath = collect(Tip2Root(outgroup))[2:end - 1]
 
-  # Edge case, the outgroup to be the new root is terminal or the new branch length is not nothing,
+  # Edge case, the outgroup to be the new root
+  # is terminal or the new branch length is not nothing,
   # we need a new root with a branch to the outgroup.
   if isleaf(outgroup) || newbl != 0.0
-    newroot = PhyNode("NewRoot", getbranchlength(getroot(tree)))
+    newroot = PhyNode("NewRoot", branchlength(root(tree)))
     pruneregraft!(outgroup, newroot, newbl)
     if length(outgrouppath) == 0
-      # There aren't any nodes between the outgroup and origional group to rearrange.
+      # There aren't any nodes between the outgroup
+      # and origional group to rearrange.
       newparent = newroot
     else
       parent = splice!(outgrouppath, 1)
-      previousbranchlength, parent.branchlength = parent.branchlength, previousbranchlength - getbranchlength(outgroup)
+      previousbranchlength, parent.branchlength = parent.branchlength, previousbranchlength - branchlength(outgroup)
       pruneregraft!(parent, newroot)
       newparent = parent
     end
   else
-    # Use the provided outgroup as a a trifurcating root if the node is not a leaf / newbl is 0.0.
+    # Use the provided outgroup as a
+    # trifurcating root if the node is not a leaf / newbl is 0.0.
     newroot = newparent = outgroup
-    setbranchlength!(newroot, getbranchlength(getroot(tree)))
+    branchlength!(newroot, branchlength(root(tree)))
   end
 
-  # Now we trace the outgroup lineage back, reattaching the subclades under the new root!
+  # Now we trace the outgroup lineage back,
+  # reattaching the subclades under the new root!
   for parent in outgrouppath
     #prune!(newparent)
-    previousbranchlength, parent.branchlength = parent.branchlength, previousbranchlength
+    previousbranchlength, parent.branchlength =
+      parent.branchlength, previousbranchlength
     pruneregraft!(parent, newparent)
     newparent = parent
   end
 
-  # Now we have two sets of connected PhyNodes. One begins the with the new root and contains the
-  # nodes rearranged as per the backtracking process along outgrouppath. The other is the nodes still connected to the old root.
+  # Now we have two s of connected PhyNodes.
+  # One begins the with the new root and contains the
+  # nodes rearranged as per the backtracking process
+  # along outgrouppath. The other is the nodes still
+  # connected to the old root.
   # This needs to be resolved.
 
-  # If the old root only has one child, it was bifurcating, and if so, must be removed and the branch lengths resolved,
+  # If the old root only has one child, it was bifurcating,
+  # and if so, must be removed and the branch lengths resolved,
   # appropriately.
   if countchildren(tree.root) == 1
-    ingroup = getchildren(getroot(tree))[1]
-    setbranchlength!(ingroup, getbranchlength(ingroup) + previousbranchlength)
+    ingroup = children(root(tree))[1]
+    branchlength!(ingroup, branchlength(ingroup) + previousbranchlength)
     pruneregraft!(ingroup, newparent)
   else
-    # If the root has more than one child, then it needs to be kept as an internal node.
-    setbranchlength!(tree.root, previousbranchlength)
+    # If the root has more than one child,
+    # then it needs to be kept as an internal node.
+    branchlength!(tree.root, previousbranchlength)
     graft!(newparent, tree.root)
   end
 
@@ -872,7 +948,7 @@ function root!(tree::Phylogeny, outgroup::PhyNode, newbl::Float64 = 0.0)
   tree.rooted = true
 end
 
-# This is probably unnessecery given setroot puts the rooted flag to true.
+# This is probably unnecessary given root puts the rooted flag to true.
 # perhaps and unroot! method is more appropriate.
 @doc """
 Unroot a tree.
@@ -896,7 +972,7 @@ Set whether a tree is re-rootable.
   },
   :returns => (Bool)
 } ->
-function setrerootable!(x::Phylogeny, rerootable::Bool)
+function rerootable!(x::Phylogeny, rerootable::Bool)
   x.rerootable = rerootable
 end
 
@@ -909,15 +985,16 @@ Get the terminal nodes of a phylogeny.
   },
   :returns => (Array)
 } ->
-function getterminals(x::Phylogeny)
-  return getterminaldescendents(x.root)
+function terminals(x::Phylogeny)
+  return terminaldescendents(x.root)
 end
 
 
 #=
-Getindex is used to get a node by name. For a large tree, repeatedly calling this may not be performance optimal.
+index is used to  a node by name. For a large tree, repeatedly calling this may not be performance optimal.
 To address this, I provide a method to create a dictionary based index for accessing nodes without search. This is the
 generateIndex method.
+<<<<<<< HEAD
 I'm uncertain whether it is better to get index with a single search of all the nodes - searchAll, or to do many
 individual search()-es.
 =#
@@ -932,7 +1009,7 @@ Get one or more nodes by name.
   :returns => (Bool)
 } ->
 function getindex(tree::Phylogeny, names::String...)
-  return searchall(DepthFirst(tree), x -> in(getname(x), names))
+  return searchall(DepthFirst(tree), x -> in(name(x), names))
 end
 
 @doc """
@@ -947,10 +1024,11 @@ Generate an index mapping names to nodes
 function generateindex(tree::Phylogeny)
   output = Dict{String, PhyNode}()
   for i = BreadthFirst(tree)
-    if haskey(output, getname(i))
-      error("You are trying to build an index dict of a tree with clades of the same name.")
+    if haskey(output, name(i))
+      error("You are trying to build an index dict " *
+            "of a tree with clades of the same name.")
     end
-    output[getname(i)] = i
+    output[name(i)] = i
   end
   return output
 end
@@ -979,11 +1057,26 @@ function pathbetween(tree::Phylogeny, n1::PhyNode, n2::PhyNode)
 end
 
 @doc """
+Find the distance of a node from its parent. This is different from branch length, because it handles the situation where branch length is unknown. It is only used when the distances between nodes are calculated.
+
+The method is necessary because unknown branch lengths are represented as -1.0.
+If all branch lengths are unknown, the tree is a cladogram, and it is still useful to be able to compare relative distances. If individual branch lengths are unknown, they should not affect the calculation of path distances. To satisfy both of these cases, we use machine epsilon as the minimal distance.
+""" {
+  :section => "Phylogeny",
+  :parameters => {
+    (:tree, "The Phylogeny to search in."),
+    (:n1, "The first node."),
+    (:n2, "The second node.")
+  },
+  :returns => (Int)
+} ->
+function distanceof(x::PhyNode)
+  bl = branchlength(x)
+  return bl == -1.0 ? eps() : bl
+end
+
+@doc """
 Find the distance between two nodes in a tree.
-
-If the tree is a phylogeny, the distance is the sum of the branch-lengths along the shortest path.
-
-If the tree is a cladogram, the distance is the number of edges in the shortest path.
 """ {
   :section => "Phylogeny",
   :parameters => {
@@ -995,7 +1088,23 @@ If the tree is a cladogram, the distance is the number of edges in the shortest 
 } ->
 function distance(tree::Phylogeny, n1::PhyNode, n2::PhyNode)
   p = pathbetween(tree, n1, n2) # Not nessecery to check n1 and n2 is in tree as pathbetween, on which this function depends, does the check.
-  return sum(getbranchlength, p)
+  return length(p) == 1 ? 0.0 : sum(distanceof, p)
+end
+
+@doc """
+Find the number of edges in the shortest path between two nodes in a tree.
+""" {
+  :section => "Phylogeny",
+  :parameters => {
+    (:tree, "The Phylogeny to search in."),
+    (:n1, "The first node."),
+    (:n2, "The second node.")
+  },
+  :returns => (Int)
+} ->
+function depth(tree::Phylogeny, n1::PhyNode, n2::PhyNode)
+  p = pathbetween(tree, n1, n2)
+  return length(p) == 1 ? 0 : length(p) - 1
 end
 
 @doc """
@@ -1014,29 +1123,44 @@ function distance(tree::Phylogeny, n1::PhyNode)
 end
 
 @doc """
-Find the distance of each node from the root. If `unitbl` is `true`, the distance will be the number of edges between the root and the node.
+Find the distance of each node from the root.
 """ {
   :section => "Phylogeny",
   :parameters => {
-    (:tree, "The Phylogeny to measure."),
-    (:unitbl, "Whether all branch lengths should be counted as 1.")
+    (:tree, "The Phylogeny to measure.")
   },
   :returns => (Bool)
 } ->
-function distance(tree::Phylogeny, unitbl::Bool = false)
-  if unitbl
-    depthof = x -> 1
-  else
-    depthof = x -> getbranchlength(x)
+function distance(tree::Phylogeny)
+  distances = Dict()
+  function updatedistances(node, currentdist)
+    distances[node] = currentdist
+    for child in children(node)
+      newdist = currentdist + distanceof(child)
+      updatedistances(child, newdist)
+    end
   end
+  updatedistances(root(tree), distanceof(root(tree)))
+  return distances
+end
+
+@doc """
+Find the depth of each node from the root.
+""" {
+  :section => "Phylogeny",
+  :parameters => {
+    (:tree, "The Phylogeny to measure.")
+  },
+  :returns => (Bool)
+} ->
+function depth(tree::Phylogeny)
   depths = Dict()
   function updatedepths(node, currentdepth)
     depths[node] = currentdepth
-    for child in node.children
-      newdepth = currentdepth + depthof(child)
-      updatedepths(child, newdepth)
+    for child in children(node)
+      updatedepths(child, currentdepth + 1)
     end
   end
-  updatedepths(tree.root, getbranchlength(tree.root))
+  updatedepths(root(tree), 0)
   return depths
 end
