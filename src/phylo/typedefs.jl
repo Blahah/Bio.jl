@@ -30,41 +30,23 @@ is  it cannot be made #undef.
  =#
 
 # Node constructors.
-function PhyNode(label::String, branchlength::Float64, ext::Vector{PhyExtension}, parent::PhyNode)
+function PhyNode(name::String = "", branchlength::Float64 = -1.0, ext::Vector{PhyExtension} = PhyExtension[])
   x = PhyNode()
-  name!(x, label)
+  name!(x, name)
+  branchlength!(x, branchlength)
+  x.extensions = ext
+  x.parent = x
+  return x
+end
+
+function PhyNode(name::String = "", branchlength::Float64 = -1.0, ext::Vector{PhyExtension} = PhyExtension[], parent::PhyNode)
+  x = PhyNode()
+  name!(x, name)
   branchlength!(x, branchlength)
   x.extensions = ext
   x.parent = parent
   return x
 end
-
-function PhyNode(parent::PhyNode)
-  x = PhyNode()
-  parent!(x, parent)
-  return x
-end
-
-function PhyNode(branchlength::Float64, parent::PhyNode)
-  x = PhyNode()
-  branchlength!(x, branchlength)
-  parent!(x, parent)
-  return x
-end
-
-function PhyNode(label::String)
-  x = PhyNode()
-  name!(x, label)
-  return x
-end
-
-function PhyNode(label::String, branchlength::Float64)
-  x = PhyNode()
-  name!(x, label)
-  branchlength!(x, branchlength)
-  return x
-end
-
 
 ### Node Manipulation / methods on the PhyNode type...
 
