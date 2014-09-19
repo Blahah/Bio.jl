@@ -39,7 +39,7 @@ function PhyNode(name::String = "", branchlength::Float64 = -1.0, ext::Vector{Ph
   return x
 end
 
-function PhyNode(name::String = "", branchlength::Float64 = -1.0, ext::Vector{PhyExtension} = PhyExtension[], parent::PhyNode)
+function PhyNode(parent::PhyNode, name::String = "", branchlength::Float64 = -1.0, ext::Vector{PhyExtension} = PhyExtension[])
   x = PhyNode()
   name!(x, name)
   branchlength!(x, branchlength)
