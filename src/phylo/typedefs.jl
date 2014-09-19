@@ -520,7 +520,6 @@ Graft a node onto another node, create a parent-child relationship between them,
   },
   :returns => (Bool)
 } ->
->>>>>>> FETCH_HEAD
 function graft!(parent::PhyNode, child::PhyNode, branchlength::Float64)
     graft!(parent, child)
     branchlength!(child, branchlength)
