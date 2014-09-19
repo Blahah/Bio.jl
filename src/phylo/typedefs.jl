@@ -13,24 +13,15 @@ end
 type PhyNode
   name::String
   branchlength::Float64
+  confidence::Float64
   extensions::Vector{PhyExtension}
   children::Vector{PhyNode}
   parent::PhyNode
-  PhyNode(name = "", branchlength = -1.0, children = PhyNode[], extensions = PhyExtension[]) = (x = new(name, branchlength, extensions, children); x.parent = x)
+  PhyNode(name = "", branchlength = -1.0, confidence = -1.0, children = PhyNode[], extensions = PhyExtension[]) = (x = new(name, branchlength, confidence, extensions, children); x.parent = x)
 end
 
-#=
-A note about the default no-argument constructor. You'll notice it incompletely initializes the instance of PhyNode,
-before filling in the Parent field with a reference to itself. This means the node has no parent and so could be a root,
-it could also just be a node that has been created, perhaps in a function, but will be added to another  of nodes subsequently
-in order to build up a tree. Alternatively the user could have just popped it off the tree. I figured a self referential
-node would be the best way to do this rather than have #undef values lurking. It also allows removal of a parent from a node for something like
-say the cutting / pruning of a subtree, since you simply need to  the parent field to point to itself, whereas to my knowlege, once a var in Julia
-is  it cannot be made #undef.
- =#
-
 # Node constructor.
-function PhyNode(parent::PhyNode, name = "", branchlength = -1.0, children = PhyNode[], extensions = PhyExtension[])
+function PhyNode(parent::PhyNode, name = "", branchlength = -1.0, confidence = -1.0, children = PhyNode[], extensions = PhyExtension[])
   x = PhyNode(name, branchlength, children, extensions)
   graft!(parent, x)
   return x
@@ -38,7 +29,25 @@ end
 
 ### Node Manipulation / methods on the PhyNode type...
 
-## ting information from a node...
+function blisknown(x::PhyNode)
+  return !x.branchlength == -1.0
+end
+
+function confisknown(x::PhyNode)
+  return !x.confidence == -1.0
+end
+
+function confidence(x::PhyNode)
+  return x.confidence
+end
+
+function confidence!(x::PhyNode, conf::Float64)
+  x.confidence = conf
+end
+
+function confidence!(x::PhyNode, conf::Nothing)
+  x.confidence = -1.0
+end
 
 function isempty(x::PhyNode)
   return x.name == "" && x.branchlength == -1.0 && !hasextensions(x) && !haschildren(x) && parentisself(x)
@@ -170,6 +179,10 @@ function branchlength!(x::PhyNode, bl::Float64)
   x.branchlength = bl
 end
 
+function branchlength!(x::PhyNode, bl::Nothing)
+  x.branchlength = -1.0
+end
+
 
 # Following unsafe functions maniplulate the ting and manipulation of parental and child links.
 # They should not be used unless absolutely nessecery - the prune and graft methods ensure the
@@ -181,11 +194,9 @@ function removeparent_unsafe!(x::PhyNode)
   parent_unsafe!(x, x)
 end
 
-
 function parent_unsafe!(parent::PhyNode, child::PhyNode)
   child.parent = parent
 end
-
 
 function addchild_unsafe!(parent::PhyNode, child::PhyNode)
   if haschild(parent, child)
@@ -194,11 +205,9 @@ function addchild_unsafe!(parent::PhyNode, child::PhyNode)
   push!(parent.children, child)
 end
 
-
 function removechild_unsafe!(parent::PhyNode, child::PhyNode)
   filter!(x -> !(x === child), parent.children)
 end
-
 
 function graft!(parent::PhyNode, child::PhyNode)
   # When grafting a subtree to another tree, or node to a node. You make sure that if it already has a parent.
@@ -209,7 +218,6 @@ function graft!(parent::PhyNode, child::PhyNode)
   parent_unsafe!(parent, child)
   addchild_unsafe!(parent, child)
 end
-
 
 function graft!(parent::PhyNode, child::PhyNode, branchlength::Float64)
     graft!(parent, child)
