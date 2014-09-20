@@ -32,51 +32,15 @@ type PhyNode
   extensions::Vector{PhyExtension}
   children::Vector{PhyNode}
   parent::PhyNode
-  PhyNode(name = "", branchlength = -1.0, confidence = -1.0, children = PhyNode[], extensions = PhyExtension[]) = (x = new(name, branchlength, confidence, extensions, children); x.parent = x)
-end
-
-# Node constructor.
-function PhyNode(parent::PhyNode, name = "", branchlength = -1.0, confidence = -1.0, children = PhyNode[], extensions = PhyExtension[])
-  x = PhyNode(name, branchlength, children, extensions)
-  graft!(parent, x)
-end
-
-@doc """
-Create a PhyNode.
-
-PhyNodes represent nodes in a phylogenetic tree. All arguments are optional when creating PhyNodes:
-
-```julia
-one = PhyNode()
-two = PhyNode(name = "two",
-              branchlength = 1.0,
-              parent = one)
-```
-
-""" {
-  :section => "PhyNode",
-  :parameters => {
-    (:name,
-     "The name of the node (optional). Defaults to an empty string, indicating the node has no name."),
-    (:branchlength,
-     "The branch length of the node from its parent (optional). Defaults to `-1.0`, indicating an unknown branch length."),
-    (:ext,
-     "An array of zero or more PhyExtensions (optional). Defaults to an empty array, i.e. `[]`, indicating there are no extensions."),
-    (:parent,
-     "The parent node (optional). Defaults to a self-reference, indicating the node has no parent.")},
-  :returns => (PhyNode)
-} ->
-function PhyNode(name::String = "",
-                 branchlength::Float64 = -1.0,
-                 ext::Vector{PhyExtension} = [],
-                 children::Vector{PhyNode} = [],
-                 parent::PhyNode = nothing)
-  x = PhyNode()
-  name!(x, label)
-  branchlength!(x, branchlength)
-  x.extensions = ext
-  x.parent = parent || x
-  return x
+  function PhyNode(name = "", branchlength = -1.0, confidence = -1.0, children = PhyNode[], extensions = PhyExtension[], parent = nothing)
+    x = new(name, branchlength, confidence, extensions, children)
+    if parent == nothing
+      x.parent = x
+    else
+      graft!(parent, x)
+    end
+    return x
+  end
 end
 
 ### Node Manipulation / methods on the PhyNode type...
