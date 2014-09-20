@@ -32,9 +32,25 @@ type PhyNode
   extensions::Vector{PhyExtension}
   children::Vector{PhyNode}
   parent::PhyNode
-  PhyNode() = (x = new("", -1.0, -1.0, PhyExtension[], PhyNode[]); x.parent = x)
+  #PhyNode() = (x = new("", -1.0, -1.0, PhyExtension[], PhyNode[]); x.parent = x)
+  function PhyNode(name::String = "", branchlength::Float64 = -1.0, confidence::Float64 = -1.0, ext::Vector{PhyExtension} = PhyExtension[], children::Vector{PhyNode} = PhyNode[], parent = nothing)
+    x = new()
+    name!(x, name)
+    branchlength!(x, branchlength)
+    confidence!(x, confidence)
+    x.extensions = ext
+    if parent != nothing
+      graft!(parent, x)
+    else
+      x.parent = x
+    end
+    for child in children
+    graft!(x, child)
+    end
+    return x
+  end
 end
-
+#=
 @doc """
 Create a PhyNode.
 
@@ -62,12 +78,14 @@ two = PhyNode(name = "two",
 } ->
 function PhyNode(name::String = "",
                  branchlength::Float64 = -1.0,
-                 ext::Vector{PhyExtension} = [],
-                 children::Vector{PhyNode} = [],
-                 parent::PhyNode = nothing)
-  x = PhyNode()
-  name!(x, label)
+                 confidence::Float64 = -1.0,
+                 ext::Vector{PhyExtension} = PhyExtension[],
+                 children::Vector{PhyNode} = PhyNode[],
+                 parent = nothing)
+  x = PhyNode("", -1.0, -1.0, PhyExtension[], PhyNode[], x)
+  name!(x, name)
   branchlength!(x, branchlength)
+  confidence!(x, confidence)
   x.extensions = ext
   if parent != nothing
     graft!(parent, x)
@@ -77,6 +95,7 @@ function PhyNode(name::String = "",
   end
   return x
 end
+=#
 
 ### Node Manipulation / methods on the PhyNode type...
 
