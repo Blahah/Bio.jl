@@ -238,18 +238,18 @@ Get the children of a node.
 """ {
   :section => "PhyNode",
   :parameters => {(:x, "The PhyNode to get children for.")},
-  :returns => (Array{PhyNode})
+  :returns => (Vector{PhyNode})
 } ->
 function children(x::PhyNode)
   return x.children
 end
 
 @doc """
-Get the siblings of a node.
+Get the siblings of a node. Included in output is the input node.
 """ {
   :section => "PhyNode",
   :parameters => {(:x, "The PhyNode to get siblings for.")},
-  :returns => (Array{PhyNode})
+  :returns => (Vector{PhyNode})
 } ->
 function siblings(x::PhyNode)
   if hasparent(x)
@@ -305,18 +305,18 @@ function islinked(x::PhyNode)
 end
 
 @doc """
-Test whether a node is a node, i.e. has a parent and one or more children.
+Test whether a node is internal, i.e. has a parent and one or more children.
 """ {
   :section => "PhyNode",
   :parameters => {(:x, "The PhyNode to test.")},
   :returns => (Bool)
 } ->
-function isnode(x::PhyNode)
+function isinternal(x::PhyNode)
   return hasparent(x) && haschildren(x)
 end
 
 @doc """
-Test whether a node has is preterminal.
+Test whether a node is preterminal i.e. It's children are all leaves.
 """ {
   :section => "PhyNode",
   :parameters => {(:x, "The PhyNode to test.")},
@@ -330,20 +330,7 @@ function ispreterminal(x::PhyNode)
 end
 
 @doc """
-Count the number of children of a node.
-""" {
-  :section => "PhyNode",
-  :parameters => {(:x, "The PhyNode to count the children of.")},
-  :returns => (Int)
-} ->
-function countchildren(x::PhyNode)
-  return length(x.children)
-end
-
-
-# A node returning true for isPreTerminal, would also return true for this function.
-@doc """
-Test whether a node is semi-preterminal.
+Test whether a node is semi-preterminal i.e. Some of it's children are leaves, but not all are.
 """ {
   :section => "PhyNode",
   :parameters => {(:x, "The PhyNode to test.")},
@@ -355,18 +342,29 @@ function issemipreterminal(x::PhyNode)
 end
 
 @doc """
+Count the number of children of a node.
+""" {
+  :section => "PhyNode",
+  :parameters => {(:x, "The PhyNode to count the children of.")},
+  :returns => (Int)
+} ->
+function countchildren(x::PhyNode)
+  return length(x.children)
+end
+
+@doc """
 Get the descendents of a node.
 """ {
   :section => "PhyNode",
   :parameters => {(:x, "The PhyNode to get descendents of.")},
-  :returns => (Array{PhyNode})
+  :returns => (Vector{PhyNode})
 } ->
 function descendents(x::PhyNode)
   return collect(PhyNode, DepthFirst(x))
 end
 
 @doc """
-Get the terminal descendents of a node.
+Get the terminal descendents of a node. i.e. Nodes that are leaves, which have the input node as an ancestor.
 """ {
   :section => "PhyNode",
   :parameters => {(:x, "The PhyNode to get ther terminal descendents of.")},
@@ -386,8 +384,9 @@ Test whether a node is ancesteral to one or more other nodes.
   },
   :returns => (Bool)
 } ->
-function isancestral(posanc::PhyNode, nodes::Array{PhyNode})
-  return all([in(node, descendents(posanc)) for node in nodes])
+function isancestral(posanc::PhyNode, nodes::Vector{PhyNode})
+  desc = descendents(posanc)
+  return all([in(node, desc) for node in nodes])
 end
 
 @doc """
