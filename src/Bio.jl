@@ -6,6 +6,4 @@ using Docile
 include("seq/seq.jl")
 include("phylo/phylo.jl")
 
-using .Phylo
-
 end
