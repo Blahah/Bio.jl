@@ -1,7 +1,7 @@
 module Bio
 
 using Docile
-@docstrings {"../doc/index.md"}
+@docstrings(manual = "../doc/index.md")
 
 include("seq/seq.jl")
 include("phylo/phylo.jl")
