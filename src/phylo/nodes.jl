@@ -51,7 +51,6 @@ when creating PhyNodes:
       name!(x, name)
       branchlength!(x, branchlength)
       confidence!(x, confidence)
-      x.extensions = ext
       if parent != nothing
         graft!(parent, x)
       else
@@ -153,7 +152,7 @@ Test whether a node is empty.
 * `x`: The PhyNode to test.
 """ ->
 function isempty(x::PhyNode)
-  return x.name == "" && x.branchlength == -1.0 && !hasextensions(x) && !haschildren(x) && parentisself(x)
+  return x.name == "" && !blisknown(x) && !hasextensions(x) && !haschildren(x) && parentisself(x) && !confisknown(x)
 end
 
 @doc """
