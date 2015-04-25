@@ -182,7 +182,7 @@ function NucleotideSequence{T<:Nucleotide}(::Type{T}, seq::String)
 end
 
 
-@doc """
+@Docile.doc """
 Construct a nucleotide sequence by concatenating other sequences.
 """ ->
 function NucleotideSequence{T<:Nucleotide}(chunks::NucleotideSequence{T}...)
@@ -210,7 +210,7 @@ end
 (*){T}(chunk1::NucleotideSequence{T}, chunks::NucleotideSequence{T}...) = NucleotideSequence(chunk1, chunks...)
 
 
-@doc """
+@Docile.doc """
 Construct a nucleotide sequence by repeating another sequences.
 """ ->
 function repeat{T<:Nucleotide}(chunk::NucleotideSequence{T}, n::Integer)
@@ -235,7 +235,7 @@ end
 (^){T}(chunk::NucleotideSequence{T}, n::Integer) = repeat(chunk, n::Integer)
 
 
-@doc """
+@Docile.doc """
 Copy `src` to `dest` starting at position `pos`.
 
 This is unsafe in the following ways:
