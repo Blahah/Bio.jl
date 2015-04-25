@@ -1,4 +1,4 @@
-@doc """
+@doc doc"""
 PhyNode represents a node in a phylogenetic tree.
 
 A node can have:
