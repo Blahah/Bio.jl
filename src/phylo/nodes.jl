@@ -19,7 +19,7 @@ type PhyNode
 """
 Create a PhyNode.
 
-PhyNodes represent nodes in a phylogenetic tree. All arguments are optional 
+PhyNodes represent nodes in a phylogenetic tree. All arguments are optional
 when creating PhyNodes:
 
 **Example:**
@@ -70,7 +70,7 @@ Test whether the branchlength in the node is known (i.e. is not -1.0).
 * `x`:  The PhyNode to test.
 """ ->
 function blisknown(x::PhyNode)
-  return !x.branchlength == -1.0
+  return x.branchlength != -1.0
 end
 
 @Docile.doc """
@@ -471,7 +471,7 @@ Remove a node from the `children` array of another node.
 
 **Parameters:**
 
-* `parent`: 
+* `parent`:
 
 * `child`:
 """ ->
@@ -642,5 +642,3 @@ function distanceof(x::PhyNode)
   bl = branchlength(x)
   return bl == -1.0 ? eps() : bl
 end
-
-
